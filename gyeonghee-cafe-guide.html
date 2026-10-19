@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>경희대 뒷공부 카페 가이드</title>
+<script src="https://apis.openapi.sk.com/tmap/vectorjs?version=1&appKey=YOUR_TMAP_APP_KEY"></script>
+<style>
+    body, html {
+        margin: 0; padding: 0; width: 100%; height: 100%;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        background-color: #f4f6f9;
+    }
+    .main-wrapper { display: flex; width: 100%; height: 100%; }
+
+
+    /* 좌측 패널 */
+    .side-popup-panel {
+        width: 360px; height: 100%; background: #ffffff;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.08); z-index: 10;
+        display: flex; flex-direction: column;
+        box-sizing: border-box; padding: 24px;
+        border-right: 1px solid #e2e8f0;
+        overflow-y: auto;
+    }
+    h2 { margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #0f172a; }
+
+
+    /* 상세 카드 */
+    .detail-card {
+        padding: 16px; margin-bottom: 16px;
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        border-radius: 10px; border: 1px solid #e2e8f0;
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .detail-card .cafe-name { font-size: 16px; font-weight: 700; color: #1e3a8a; }
+    .detail-card .info-row { font-size: 13px; color: #334155; display: flex; align-items: baseline; }
+    .detail-card .info-label { font-weight: bold; color: #64748b; white-space: nowrap; margin-right: 6px; min-width: 64px; }
+    .detail-card .custom-comment {
+        margin-top: 4px; padding: 8px 12px; background: #ffffff;
+        border-left: 4px solid #3b82f6; border-radius: 4px;
+        font-size: 13px; font-weight: 600; color: #2563eb; font-style: italic;
+    }
+
+
+    /* 목록 */
+    .list-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .list-title { font-weight: 600; font-size: 14px; margin-bottom: 10px; color: #475569; }
+    .distance-list-container {
+        flex: 1; overflow-y: auto; min-height: 120px;
+        border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;
+    }
+    .distance-list { list-style: none; padding: 0; margin: 0; }
+    .distance-list li {
+        padding: 14px 16px; border-bottom: 1px solid #f1f5f9;
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 13px; cursor: pointer; transition: background 0.2s;
+    }
+    .distance-list li:hover { background-color: #f1f5f9; }
+    .distance-list li:last-child { border-bottom: none; }
+    .place-title { font-weight: 600; color: #334155; }
+    .place-distance { color: #ef4444; font-weight: 700; font-size: 12px; white-space: nowrap; margin-left: 8px; }
+
+
+    /* ── 범례 (레벨 필터) ── */
+    .legend-section {
+        margin-bottom: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 16px;
+    }
+    .legend-section-title {
+        font-weight: 700; font-size: 13px; color: #334155;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .legend-hint {
+        font-size: 10.5px; color: #94a3b8; margin-bottom: 10px; font-style: italic;
+    }
+    .legend-item {
+        display: flex; align-items: center;
+        padding: 6px 8px; border-radius: 7px;
+        margin-bottom: 4px; cursor: pointer;
+        transition: background 0.15s, opacity 0.2s;
+        user-select: none;
+    }
+    .legend-item:last-of-type { margin-bottom: 0; }
+    .legend-item:hover { background: #f1f5f9; }
+    .legend-item.inactive { opacity: 0.38; }
+    .legend-item.inactive .legend-label {
+        text-decoration: line-through; color: #94a3b8;
+    }
+    .legend-dot {
+        width: 13px; height: 13px; border-radius: 50%;
+        margin-right: 9px; flex-shrink: 0;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    }
+    .legend-label { font-size: 12.5px; font-weight: 600; color: #334155; flex: 1; }
+    .legend-toggle { font-size: 12px; color: #94a3b8; margin-left: auto; }
+    .legend-item.inactive .legend-toggle { color: #cbd5e1; }
+
+
+    .legend-all-btn {
+        display: block; width: 100%; margin-top: 10px;
+        padding: 6px 0; background: #f1f5f9;
+        border: 1px solid #dde3ea; border-radius: 7px;
+        font-size: 11.5px; color: #64748b; font-weight: 600;
+        cursor: pointer; text-align: center;
+        transition: background 0.15s, color 0.15s;
+    }
+    .legend-all-btn:hover { background: #e2e8f0; color: #1e293b; }
+
+
+    /* 우측 지도 */
+    .map-container { flex: 1; height: 100%; position: relative; }
+    #map_div { width: 100%; height: 100%; }
+
+
+    .map-modes-overlay {
+        position: absolute; top: 16px; right: 16px; z-index: 5;
+        display: flex; background: #fff; border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12); padding: 4px; gap: 4px; border: 1px solid #e2e8f0;
+    }
+    .map-modes-overlay button {
+        border: none; background: none; padding: 8px 14px; font-size: 12px;
+        font-weight: bold; color: #4a5568; cursor: pointer; border-radius: 6px; transition: all 0.2s;
+    }
+    .map-modes-overlay button:hover { background: #edf2f7; }
+
+
+    .zoom-controls-overlay {
+        position: absolute; right: 16px; top: 50%; transform: translateY(-50%); z-index: 5;
+        display: flex; flex-direction: column; background: #fff; border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12); padding: 4px; gap: 2px; border: 1px solid #e2e8f0;
+    }
+    .zoom-controls-overlay button {
+        border: none; background: none; width: 38px; height: 38px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; color: #4a5568; cursor: pointer; border-radius: 6px; transition: background 0.2s;
+    }
+    .zoom-controls-overlay button:hover { background: #edf2f7; }
+
+
+    #zoom_status_toast {
+        position: absolute; bottom: 16px; right: 16px;
+        background: rgba(15,23,42,0.8); color: #fff;
+        padding: 6px 12px; font-size: 11px; border-radius: 20px;
+        z-index: 5; pointer-events: none; display: none;
+    }
+</style>
+
+
+<script type="text/javascript">
+
+
+    var map;
+    var myLocationMarker = null;
+    var currentInfoWindow = null;
+    var cafeMarkers = [];          // [{marker, cafe}, ...]
+    var resultdrawArr = [];
+    var drawInfoArr   = [];
+
+
+    // ── 레벨별 색상 정의 ──
+    var LEVEL_COLORS = {
+        'Lv1': '#3b82f6',   // 파랑  (입문)
+        'Lv2': '#f59e0b',   // 주황  (중급)
+        'Lv3': '#10b981'    // 초록  (고수)
+    };
+
+
+    // 레벨별 마커 그룹 및 가시성 상태
+    var markerGroups    = { 'Lv1': [], 'Lv2': [], 'Lv3': [] };
+    var visibilityState = { 'Lv1': true, 'Lv2': true, 'Lv3': true };
+
+
+    var myLocation = new Tmapv3.LatLng(37.5923, 127.0520);
+
+
+    // ── 아이콘 생성 (레벨별 색상 적용) ──
+    function makeSvgIcon(emoji, borderColor) {
+        borderColor = borderColor || '#3b82f6';
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">'
+            + '<circle cx="18" cy="18" r="17" fill="#ffffff" stroke="' + borderColor + '" stroke-width="2.5"/>'
+            + '<text x="18" y="23" text-anchor="middle" font-size="18">' + emoji + '</text>'
+            + '</svg>';
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+
+    var ICON_ME = makeSvgIcon('📍', '#2563eb');
+
+
+    // tags 문자열에서 레벨 추출 ('뒷공부.Lv3' → 'Lv3')
+    function extractLevel(tags) {
+        var m = tags.match(/Lv\d+/);
+        return m ? m[0] : 'Lv1';
+    }
+
+
+    var cafeData = [
+        { title: '커피 메소드',  lonlat: new Tmapv3.LatLng(37.5928673,  127.0530985),  menu: '아인슈페너',        tags: '뒷공부.Lv3', description: '☕ 아인슈페너 맛집, 분위기 깡패 인정!' },
+        { title: '레프트 커피',  lonlat: new Tmapv3.LatLng(37.59046478, 127.05420145), menu: '솔티드 카라멜 라떼', tags: '뒷공부.Lv2', description: '커피 사고 중도나 이열람실에서 공부하면 완벽' },
+        { title: '컴투레스트',   lonlat: new Tmapv3.LatLng(37.59120900, 127.05420652), menu: '아인쑥페너',         tags: '뒷공부.Lv2', description: '새로운게 먹고 싶다면 쑥이 들어간 커피를...' },
+        { title: '브루앤바이트', lonlat: new Tmapv3.LatLng(37.59302270, 127.05099890), menu: '아몬드 헤이즐넛 라떼',tags: '뒷공부.Lv1', description: '이 근처에 이렇게 넓은 카페 별로 없다' },
+        { title: '투썸플레이스', lonlat: new Tmapv3.LatLng(37.59229648, 127.05224618), menu: '아이스말차아박',     tags: '뒷공부.Lv1', description: '24시간 카페라 밤샘 공부 가능!!' },
+        { title: '알고 커피',    lonlat: new Tmapv3.LatLng(37.59337907, 127.05314260), menu: '아메리카노',         tags: '뒷공부.Lv3', description: '📝 뒷공부 스팟 GOAT, 집중 매우 잘됨' }
+    ];
+
+
+    // ── 지도 초기화 ──
+    function initTmap() {
+        map = new Tmapv3.Map("map_div", {
+            httpsMode: true, center: myLocation,
+            width: "100%", height: "100%", zoom: 16
+        });
+
+
+        myLocationMarker = new Tmapv3.Marker({
+            position: myLocation, map: map, icon: ICON_ME,
+            label: "<span style='background:#fff;padding:3px;border:1px solid #333;border-radius:3px;font-size:11px;'>위치 수신중...</span>"
+        });
+
+
+        createCafeMarkers();
+        updateCafeList();
+        initLegendEvents();
+
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    myLocation = new Tmapv3.LatLng(pos.coords.latitude, pos.coords.longitude);
+                    map.setCenter(myLocation);
+                    myLocationMarker.setPosition(myLocation);
+                    myLocationMarker.setLabel("<span style='background:#fff;padding:3px;border:1px solid #2563eb;border-radius:3px;font-size:11px;font-weight:bold;color:#2563eb;'>📍 현재 위치</span>");
+                    updateCafeList();
+                },
+                function() {
+                    myLocationMarker.setLabel("<span style='background:#fff;padding:3px;border:1px solid #64748b;border-radius:3px;font-size:11px;color:#64748b;'>경희대 정문 기준</span>");
+                }
+            );
+        }
+    }
+
+
+    // ── 카페 마커 생성 (레벨별 색상 아이콘) ──
+    function createCafeMarkers() {
+        for (var k = 0; k < cafeData.length; k++) {
+            var cafe = cafeData[k];
+            var level = extractLevel(cafe.tags);
+            var color = LEVEL_COLORS[level] || '#3b82f6';
+            var icon  = makeSvgIcon('☕', color);
+
+
+            var marker = new Tmapv3.Marker({
+                position: cafe.lonlat, map: map, icon: icon,
+                label: "<span style='background:#fff;padding:2px 6px;border:1px solid " + color + ";border-radius:4px;font-size:11px;font-weight:600;color:" + color + ";'>" + cafe.title + "</span>"
+            });
+
+
+            cafeMarkers.push({ marker: marker, cafe: cafe, level: level });
+            markerGroups[level].push(marker);
+
+
+            (function(m, c) {
+                m.on("click", function() { selectCafe(c); });
+            })(marker, cafe);
+        }
+    }
+
+
+    // ── 카페 선택 ──
+    function selectCafe(cafe) {
+        if (currentInfoWindow) currentInfoWindow.setMap(null);
+
+
+        document.getElementById("detail_name").innerText    = cafe.title;
+        document.getElementById("detail_menu").innerText    = cafe.menu;
+        document.getElementById("detail_tags").innerText    = cafe.tags;
+        document.getElementById("detail_dist").innerText    = cafe.distanceText || "-";
+        document.getElementById("detail_walk").innerText    = "경로 계산 중...";
+        document.getElementById("detail_comment").innerText = cafe.description;
+
+
+        var level = extractLevel(cafe.tags);
+        var color = LEVEL_COLORS[level] || '#3b82f6';
+
+
+        currentInfoWindow = new Tmapv3.InfoWindow({
+            position: cafe.lonlat, type: 2, map: map,
+            content:
+                "<div style='padding:12px;min-width:150px;font-family:sans-serif;'>" +
+                "<div style='font-weight:bold;font-size:14px;color:#111;margin-bottom:4px;'>" + cafe.title + "</div>" +
+                "<div style='color:#666;font-size:12px;margin-bottom:2px;'>✨ 추천: " + cafe.menu + "</div>" +
+                "<div style='color:" + color + ";font-size:12px;font-weight:700;'>🏷️ " + cafe.tags + "</div>" +
+                "</div>"
+        });
+
+
+        map.setCenter(cafe.lonlat);
+        getPedestrianRoute(cafe.lonlat.lat(), cafe.lonlat.lng());
+    }
+
+
+    // ── 거리 계산 + 목록 갱신 ──
+    function updateCafeList() {
+        var R = 6371000;
+        for (var k = 0; k < cafeData.length; k++) {
+            var lat1 = myLocation.lat(), lng1 = myLocation.lng();
+            var lat2 = cafeData[k].lonlat.lat(), lng2 = cafeData[k].lonlat.lng();
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLng = (lng2 - lng1) * Math.PI / 180;
+            var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+                    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+            var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            cafeData[k].rawDistance  = dist;
+            cafeData[k].distanceText = dist >= 1000 ? (dist/1000).toFixed(2) + " km" : Math.round(dist) + " m";
+        }
+
+
+        cafeData.sort(function(a, b) { return a.rawDistance - b.rawDistance; });
+
+
+        var listEl = document.getElementById("distance_list");
+        listEl.innerHTML = "";
+        for (var k = 0; k < cafeData.length; k++) {
+            var cafe = cafeData[k];
+            var level = extractLevel(cafe.tags);
+            var color = LEVEL_COLORS[level] || '#3b82f6';
+            var li = document.createElement("li");
+            (function(c) { li.onclick = function() { selectCafe(c); }; })(cafe);
+            li.innerHTML =
+                "<div style='display:flex;flex-direction:column;'>" +
+                "  <span class='place-title'>" + (k+1) + ". " + cafe.title + "</span>" +
+                "  <span style='font-size:11px;color:#64748b;margin-top:2px;'>☕ " + cafe.menu +
+                " | <span style='color:" + color + ";font-weight:700;'>" + cafe.tags + "</span></span>" +
+                "</div>" +
+                "<span class='place-distance'>" + cafe.distanceText + "</span>";
+            listEl.appendChild(li);
+        }
+    }
+
+
+    // ── 보행자 경로 API ──
+    function getPedestrianRoute(destLat, destLng) {
+        if (resultdrawArr.length > 0) {
+            for (var i in resultdrawArr) { resultdrawArr[i].setMap(null); }
+            resultdrawArr = [];
+        }
+        drawInfoArr = [];
+
+
+        fetch("https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "appKey": "YOUR_TMAP_APP_KEY"
+            },
+            body: JSON.stringify({
+                startX:        myLocation.lng().toString(),
+                startY:        myLocation.lat().toString(),
+                endX:          destLng.toString(),
+                endY:          destLat.toString(),
+                reqCoordType:  "WGS84GEO",
+                resCoordType:  "WGS84GEO",
+                startName:     "내 위치",
+                endName:       "목적지"
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (!data.features) {
+                document.getElementById("detail_walk").innerText = "연산 불가 구간";
+                return;
+            }
+            var resultData = data.features;
+            var totalDist = resultData[0].properties.totalDistance;
+            var totalTime = resultData[0].properties.totalTime;
+            var distTxt   = totalDist >= 1000
+                ? (totalDist / 1000).toFixed(1) + " km"
+                : totalDist + " m";
+            document.getElementById("detail_walk").innerText =
+                distTxt + " (도보 약 " + Math.round(totalTime / 60) + "분)";
+
+
+            for (var i in resultData) {
+                var geometry = resultData[i].geometry;
+                if (geometry.type === "LineString") {
+                    for (var j in geometry.coordinates) {
+                        var lng = geometry.coordinates[j][0];
+                        var lat = geometry.coordinates[j][1];
+                        drawInfoArr.push(new Tmapv3.LatLng(lat, lng));
+                    }
+                }
+            }
+            drawLine(drawInfoArr);
+        })
+        .catch(function() {
+            document.getElementById("detail_walk").innerText = "연산 불가 구간";
+        });
+    }
+
+
+    function drawLine(arrPoint) {
+        var polyline = new Tmapv3.Polyline({
+            path:         arrPoint,
+            strokeColor:  "#DD0000",
+            strokeWeight: 6,
+            map:          map
+        });
+        resultdrawArr.push(polyline);
+    }
+
+
+    // ── 범례 이벤트 초기화 ──
+    function initLegendEvents() {
+        // 개별 레벨 토글
+        document.querySelectorAll('.legend-item[data-level]').forEach(function(el) {
+            el.addEventListener('click', function() {
+                var level = el.dataset.level;
+                if (!markerGroups[level]) return;
+
+
+                var isVisible = visibilityState[level];
+                markerGroups[level].forEach(function(m) {
+                    m.setMap(isVisible ? null : map);
+                });
+                visibilityState[level] = !isVisible;
+
+
+                el.classList.toggle('inactive', isVisible);
+                var icon = el.querySelector('.legend-toggle');
+                if (icon) icon.textContent = isVisible ? '🚫' : '👁';
+
+
+                updateAllBtnText();
+            });
+        });
+
+
+        // 전체 토글
+        var allBtn = document.getElementById('legendAllBtn');
+        if (allBtn) {
+            allBtn.addEventListener('click', function() {
+                var anyVisible = Object.keys(visibilityState).some(function(k) { return visibilityState[k]; });
+
+
+                Object.keys(markerGroups).forEach(function(level) {
+                    markerGroups[level].forEach(function(m) {
+                        m.setMap(anyVisible ? null : map);
+                    });
+                    visibilityState[level] = !anyVisible;
+                });
+
+
+                document.querySelectorAll('.legend-item[data-level]').forEach(function(el) {
+                    el.classList.toggle('inactive', anyVisible);
+                    var icon = el.querySelector('.legend-toggle');
+                    if (icon) icon.textContent = anyVisible ? '🚫' : '👁';
+                });
+
+
+                updateAllBtnText();
+            });
+        }
+    }
+
+
+    function updateAllBtnText() {
+        var anyVisible = Object.keys(visibilityState).some(function(k) { return visibilityState[k]; });
+        var btn = document.getElementById('legendAllBtn');
+        if (btn) btn.textContent = anyVisible ? '전체 숨기기' : '전체 보이기';
+    }
+
+
+    // ── 지도 컨트롤 ──
+    function MapType(type) { if (map) map.setMapType(type); }
+    function zoomIn()  { if (map) map.zoomIn(); }
+    function zoomOut() { if (map) map.zoomOut(); }
+    function checkZoom() {
+        if (!map) return;
+        var t = document.getElementById("zoom_status_toast");
+        t.innerHTML = "현재 줌 레벨: " + map.getZoom();
+        t.style.display = "block";
+        setTimeout(function() { t.style.display = "none"; }, 2000);
+    }
+
+
+</script>
+</head>
+<body onload="initTmap()">
+<div class="main-wrapper">
+
+
+    <!-- 좌측 패널 -->
+    <div class="side-popup-panel">
+        <h2>☕ 경희대 뒷공부 카페 가이드</h2>
+
+
+        <!-- 상세 카드 -->
+        <span class="list-title">🔍 선택한 카페 상세 정보</span>
+        <div class="detail-card">
+            <div class="cafe-name" id="detail_name">카페를 선택해주세요</div>
+            <div class="info-row"><span class="info-label">✨ 추천 메뉴</span><span id="detail_menu">-</span></div>
+            <div class="info-row"><span class="info-label">🏷️ 분류</span><span id="detail_tags">-</span></div>
+            <div class="info-row"><span class="info-label">📏 거리</span><span id="detail_dist">-</span></div>
+            <div class="info-row"><span class="info-label">🚶 도보</span><span id="detail_walk">리스트 클릭 시 계산됨</span></div>
+            <div class="custom-comment" id="detail_comment">리스트나 마커를 누르면 상세 꿀팁이 나타납니다!</div>
+        </div>
+
+
+        <!-- 레벨 필터 범례 -->
+        <div class="legend-section">
+            <div class="legend-section-title">🎯 뒷공부 레벨 필터</div>
+            <div class="legend-hint">※ 항목 클릭 시 해당 레벨 마커 표시/숨김</div>
+
+
+            <div class="legend-item" data-level="Lv1">
+                <span class="legend-dot" style="background:#3b82f6;"></span>
+                <span class="legend-label">Lv1 — 입문 (넓고 편안)</span>
+                <span class="legend-toggle">👁</span>
+            </div>
+            <div class="legend-item" data-level="Lv2">
+                <span class="legend-dot" style="background:#f59e0b;"></span>
+                <span class="legend-label">Lv2 — 중급 (분위기 있음)</span>
+                <span class="legend-toggle">👁</span>
+            </div>
+            <div class="legend-item" data-level="Lv3">
+                <span class="legend-dot" style="background:#10b981;"></span>
+                <span class="legend-label">Lv3 — 고수 (집중 극강)</span>
+                <span class="legend-toggle">👁</span>
+            </div>
+
+
+            <button class="legend-all-btn" id="legendAllBtn">전체 숨기기</button>
+        </div>
+
+
+        <!-- 거리 목록 -->
+        <div class="list-wrapper">
+            <span class="list-title">📍 내 위치 기준 추천 순위 (거리순)</span>
+            <div class="distance-list-container">
+                <ul id="distance_list" class="distance-list"></ul>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 우측 지도 -->
+
+
+    <div class="map-container">
+        <div id="map_div"></div>
+        <div class="map-modes-overlay">
+            <button onclick="MapType('ROAD')">ROAD</button>
+            <button onclick="MapType('HYBRID')">HYBRID</button>
+            <button onclick="MapType('PUBLIC')">PUBLIC</button>
+            <button onclick="MapType('NIGHT')">NIGHT</button>
+        </div>
+        <div class="zoom-controls-overlay">
+            <button onclick="zoomIn()">＋</button>
+            <button onclick="zoomOut()">－</button>
+            <button onclick="checkZoom()">ℹ️</button>
+        </div>
+        <div id="zoom_status_toast"></div>
+    </div>
+
+
+</div>
+</body>
+</html>
+
